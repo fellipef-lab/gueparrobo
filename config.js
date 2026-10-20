@@ -6,12 +6,12 @@
 self.ATIV_CONFIG = {
   // Firebase → ⚙️ Configurações do projeto → Seus apps → App da Web → "Configuração do SDK"
   firebase: {
-    apiKey: "COLE-AQUI",
-    authDomain: "COLE-AQUI",
-    projectId: "COLE-AQUI",
-    storageBucket: "COLE-AQUI",
-    messagingSenderId: "COLE-AQUI",
-    appId: "COLE-AQUI",
+    apiKey: "AIzaSyAX3qklJZCrxdrBjNmdUaQfrDrsHHKzo1A",
+    authDomain: "controledeatividade-b646f.firebaseapp.com",
+    projectId: "controledeatividade-b646f",
+    storageBucket: "controledeatividade-b646f.firebasestorage.app",
+    messagingSenderId: "11310686048",
+    appId: "1:11310686048:web:8e6fb9a1aad6f6c5ee0805",
   },
 
   // Avisar quando uma atividade ficar "em andamento" por mais de (horas)
