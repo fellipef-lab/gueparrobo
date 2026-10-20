@@ -1,0 +1,97 @@
+rules_version = '2';
+
+// Regras de segurança do banco de dados do app Controle de Atividades.
+// Estas regras NÃO expiram. Cole tudo em: Firebase -> Firestore Database -> aba "Regras" -> Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null; }
+    function perfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function membro() { return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && perfil().ativo == true; }
+    // "supervisor" = Administrador (pode tudo)
+    function supervisor() { return membro() && perfil().papel == 'supervisor'; }
+    // Usuário com restrições: só o que estiver marcado em "perms".
+    // Usuários antigos "lider" (sem lista de permissões) continuam com as permissões de líder.
+    function pode(p) {
+      return supervisor() || (membro() && (('perms' in perfil())
+        ? perfil().perms.get(p, false) == true
+        : (perfil().papel == 'lider' && p in ['lancar', 'executar', 'relatorios', 'planejar', 'colab', 'alertas', 'tv'])));
+    }
+    function soMuda(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos); }
+    function sistemaExiste() { return exists(/databases/$(database)/documents/config/sistema); }
+
+    // Atividade com dados no formato certo
+    function atividadeOk() {
+      let d = request.resource.data;
+      return d.data is string && d.data.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.localNome is string && d.pessoas is list && d.pessoas.size() <= 30
+        && (d.itensLista == null || (d.itensLista is int && d.itensLista >= 0))
+        && (d.itensAbastecidos == null || (d.itensAbastecidos is int && d.itensAbastecidos >= 0))
+        && (d.obs == null || (d.obs is string && d.obs.size() <= 500))
+        && (!('pausas' in d) || (d.pausas is list && d.pausas.size() <= 60))
+        && (!('itens' in d) || (d.itens is list && d.itens.size() <= 500));
+    }
+
+    // Configuração geral (nome da empresa, turno, alertas). Criada uma única vez, no primeiro acesso.
+    // config/metas: metas de itens/hora calculadas pelo histórico (o supervisor grava, todos leem).
+    match /config/{id} {
+      allow get: if id == 'sistema' || (id == 'metas' && membro());
+      allow list: if false;
+      allow create: if (logado() && id == 'sistema'
+          && request.resource.data.dono == request.auth.uid
+          && existsAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)))
+        || (id == 'metas' && supervisor());
+      allow update: if supervisor() && (id == 'metas' || request.resource.data.dono == resource.data.dono);
+      allow delete: if false;
+    }
+
+    // Usuários do app. O 1º supervisor se cadastra no primeiro acesso; os outros são criados por um supervisor.
+    // Ninguém tira o próprio acesso de supervisor (para o app nunca ficar sem nenhum).
+    match /usuarios/{uid} {
+      allow read: if membro() || (logado() && request.auth.uid == uid);
+      allow create: if supervisor()
+        || (logado() && uid == request.auth.uid && !sistemaExiste()
+            && getAfter(/databases/$(database)/documents/config/sistema).data.dono == request.auth.uid
+            && request.resource.data.papel == 'supervisor' && request.resource.data.ativo == true);
+      allow update: if supervisor()
+        && (uid != request.auth.uid || (request.resource.data.papel == 'supervisor' && request.resource.data.ativo == true));
+      allow delete: if supervisor() && uid != request.auth.uid;
+    }
+
+    // Usuário de login -> conta. Consulta só pelo nome exato (necessário para entrar); ninguém lista todos.
+    match /logins/{login} {
+      allow get: if true;
+      allow list: if supervisor();
+      allow create: if supervisor()
+        || (logado() && !sistemaExiste()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.email == request.auth.token.email);
+      allow update, delete: if supervisor();
+    }
+
+    // Colaboradores: quem tem a permissão cadastra; só o administrador exclui
+    match /colaboradores/{id} {
+      allow read: if membro();
+      allow create, update: if (pode('colab') || pode('importar'))
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 60;
+      allow delete: if supervisor();
+    }
+
+    // Locais (ruas, jiraus, sala nobre)
+    match /locais/{id} {
+      allow read: if membro();
+      allow create: if pode('locais') || pode('importar');
+      allow update, delete: if pode('locais');
+    }
+
+    // Atividades: todos os usuários veem; cada ação depende da permissão
+    match /atividades/{id} {
+      allow read: if membro();
+      allow create: if (pode('lancar') || pode('planejar') || pode('importar')) && atividadeOk();
+      allow update: if atividadeOk() && (pode('lancar') || pode('importar')
+        || (pode('executar') && soMuda(['inicio', 'fim', 'pausas', 'itens', 'itensLista', 'itensAbastecidos', 'motivoFalta', 'obs', 'atualizadoEm', 'atualizadoPor'])));
+      allow delete: if pode('excluir');
+    }
+  }
+}

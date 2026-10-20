@@ -1,0 +1,163 @@
+==============================================================
+  CONTROLE DE ATIVIDADES E PRODUTIVIDADE — APP ONLINE
+  Firebase (plano GRÁTIS / Spark) + GitHub Pages
+==============================================================
+
+É a planilha "Controle de Atividades" virando aplicativo: cada um lança a atividade no
+celular, toca em ▶ Iniciar e ■ Finalizar, e o app faz as contas (tempo, pendentes,
+itens/hora) e monta o resumo por local e por colaborador. Baixa o Excel no mesmo formato.
+
+IMPORTANTE: este app usa um projeto Firebase SÓ DELE. Não use o projeto da Frota, do
+Guepar nem do App_Equipes. Assim os dados nunca se misturam.
+
+O QUE TEM NESTA PASTA (app) — tudo aqui vai para o GitHub
+  index.html, app.js, sw.js, manifest.json, ícones, .nojekyll -> o aplicativo
+  config.js          -> dados do Firebase deste app (você preenche no passo 5)
+  firestore.rules    -> regras de segurança (cola no Firebase no passo 4)
+  LEIA-ME.txt        -> este guia
+
+  Fora desta pasta (em Controle-Atividades) fica o que NÃO vai para o GitHub:
+  offline\           -> versão para testar no computador sem internet (dois cliques no index.html)
+  offline-fonte\, gerar-offline.ps1, _backups\ -> uso interno (não mexa)
+
+
+--------------------------------------------------------------
+PARTE 1 — FIREBASE (grátis, sem cartão)
+--------------------------------------------------------------
+
+1) Criar o projeto
+   -> https://console.firebase.google.com -> "Adicionar projeto"
+   -> Nome: controle-atividades (ou outro) -> pode desativar o Google Analytics -> Criar.
+
+2) Login
+   -> Menu "Authentication" -> "Vamos começar" -> aba "Método de login"
+   -> ative "E-mail/senha" (só a primeira chave) -> Salvar.
+   (Os usuários entram com "usuário" e senha; por dentro o app usa e-mail técnico.)
+
+3) Banco de dados  (é o FIRESTORE, não o "Realtime Database")
+   -> Menu "Firestore Database" -> "Criar banco de dados"
+   -> Local: southamerica-east1 (São Paulo) -> Modo de produção -> Criar.
+
+4) Regras (NÃO expiram)
+   -> Firestore Database -> aba "Regras" -> apague tudo
+   -> abra o arquivo firestore.rules no Bloco de Notas, copie TUDO, cole -> "Publicar".
+
+5) Dados para o config.js
+   -> Engrenagem (Configurações do projeto) -> aba "Geral" -> "Seus apps" -> ícone </> (Web)
+   -> Apelido: Atividades -> "Registrar app" (NÃO marque Firebase Hosting).
+   -> Aparece "firebaseConfig = { apiKey: ..., ... }".
+   -> Abra o config.js (nesta pasta) no Bloco de Notas e troque cada "COLE-AQUI" pelo valor correspondente.
+   (Se preferir, me mande o firebaseConfig que eu preencho.)
+
+
+--------------------------------------------------------------
+PARTE 2 — GITHUB PAGES (grátis)
+--------------------------------------------------------------
+
+6) No GitHub: crie um repositório NOVO (ex.: atividades)
+   -> "Add file" -> "Upload files"
+   -> arraste TODOS os arquivos da pasta app (index.html, app.js, config.js, sw.js,
+      manifest.json, icon-192.png, icon-512.png, firestore.rules, LEIA-ME.txt e .nojekyll)
+      -> "Commit changes".
+   O index.html precisa ficar na RAIZ do repositório.
+   Dica: o .nojekyll fica oculto no Windows. Se não aparecer, tudo bem.
+
+7) Repositório -> Settings -> Pages -> Source: "Deploy from a branch"
+   -> Branch: main  /(root) -> Save. Em 1 a 2 minutos sai o link:
+      https://fellipef-lab.github.io/atividades/
+
+8) No Firebase: Authentication -> Configurações -> "Domínios autorizados"
+   -> "Adicionar domínio" -> fellipef-lab.github.io
+
+
+--------------------------------------------------------------
+PARTE 3 — PRIMEIRO USO
+--------------------------------------------------------------
+
+9) Abra o link. Como o app é novo, aparece "Primeiro acesso":
+   empresa/setor, seu nome, seu usuário e senha. Você vira o SUPERVISOR.
+   Deixe marcado "Já criar os locais da planilha" (Rua A a I, Jiraus e Sala Nobre).
+
+10) Cadastros:
+   - Colaboradores: cadastre a equipe (ou deixe a importação criar).
+   - Locais: ajuste nomes, tipo, ordem e "pessoas previstas" de cada local.
+   - Usuários do app -> "＋ Novo usuário": nome, usuário, senha e o TIPO DE ACESSO:
+       👑 Administrador  = faz tudo (inclusive criar usuários e mudar os ajustes).
+       🔒 Com restrições = só o que você marcar. Modelos prontos:
+            Líder       = lança, inicia/finaliza, relatórios, planejar, colaboradores, alertas, TV
+            Operador    = só inicia, pausa, finaliza e marca os itens
+            Só consulta = só vê relatórios e o Modo TV
+          Ou marque item por item: lançar/editar, iniciar/pausar/finalizar, excluir,
+          ver resumo e histórico, planejar, colaboradores, locais, importar, alertas, Modo TV.
+       O que a pessoa não pode fazer nem aparece na tela, e o banco de dados também bloqueia.
+       Para mudar depois: Usuários do app -> "✏️ Editar / senha".
+   - Importar planilha: traga as planilhas antigas (.xlsx). Importar de novo não duplica.
+
+11) No celular, instale como app:
+   Android: Chrome -> menu (3 pontinhos) -> "Instalar app" / "Adicionar à tela inicial".
+   iPhone:  Safari -> Compartilhar -> "Adicionar à Tela de Início".
+
+
+--------------------------------------------------------------
+COMO USAR NO DIA A DIA
+--------------------------------------------------------------
+  DIA      - Começo do turno: "Copiar escala de outro dia" (repete locais e pessoas de ontem)
+             ou "＋ Nova atividade".
+           - Toque em ▶ Iniciar quando a pessoa começa (a hora entra sozinha).
+           - Toque em ■ Finalizar: hora do término, itens da lista, itens abastecidos, observação.
+           - Atividade esquecida "em andamento" há mais de 4 h aparece em amarelo.
+  RESUMO   - Hoje, ontem, 7 dias, mês ou período escolhido: totais, tabela por local,
+             itens/hora por local, pendências, ranking por colaborador e por dia.
+           - "Baixar Excel" (mesmo formato da planilha + Resumo + Por colaborador)
+             e "Imprimir / PDF".
+  HISTÓRICO- Busca por nome, local, observação, colaborador e situação. Toque para corrigir.
+
+  🎯 META POR LOCAL - O app calcula sozinho a média de itens/hora de cada local nas últimas
+             4 semanas (recalcula 1x por dia). Cada atividade mostra "% da meta" em verde
+             (acima), amarelo (80-99%) ou vermelho (abaixo de 80%). Para fixar a meta de um
+             local: Cadastros -> Locais -> Editar -> "Meta fixa".
+  ⏸ PAUSA COM MOTIVO - Na atividade em andamento: ⏸ Pausar -> motivo (almoço, aguardando
+             material, sem equipamento, reunião, ajudando outro local, outro). O tempo parado
+             NÃO entra na produtividade. O Resumo mostra o tempo parado por motivo.
+  ☑️ ITENS UM POR UM - Em Editar -> "Lista item a item": cole a lista (copie a coluna do
+             Excel/sistema). Depois, em "☑️ Itens", marque ✔ abastecido ou ✖ faltou (com motivo:
+             sem estoque, sem espaço, avaria, não encontrado). O supervisor marca a falta como
+             "Resolvido" no Resumo. Sem a lista, ao finalizar com falta o app pede o motivo.
+  🗓️ PLANEJAR - Escolha o dia (amanhã), confira os itens previstos de cada local (o app sugere
+             pela média) e veja horas e pessoas necessárias. "Criar as atividades" já monta o
+             dia; depois é só escolher as pessoas e tocar em ▶ Iniciar.
+  🔔 ALERTAS - O supervisor recebe no app (sininho) e nas notificações do aparelho: pausa longa,
+             atividade esquecida, terminou abaixo da meta, item que faltou, local que não
+             começou e "relatório pronto" no fim do turno. Limites em Cadastros -> Empresa.
+             No plano grátis os alertas chegam com o app ABERTO ou MINIMIZADO.
+  📤 RELATÓRIO - Botão "Relatório do dia" (no Dia e no Resumo): texto pronto para o WhatsApp
+             do gestor (cadastre o número em Cadastros -> Empresa). Dá para editar antes.
+  📺 MODO TV - No computador, menu "Modo TV": tela cheia para a TV do setor, atualiza sozinha
+             (andamento de cada local, metas, pendências e resultado por equipe).
+
+  ATENÇÃO (quem já publicou as regras): estas novidades exigem as regras novas.
+  Cole o firestore.rules de novo em Firebase -> Firestore Database -> Regras -> Publicar.
+
+
+--------------------------------------------------------------
+O QUE MUDOU EM RELAÇÃO À PLANILHA (contas corrigidas)
+--------------------------------------------------------------
+  - Produtividade média: a planilha dividia pelos itens PENDENTES em vez do TEMPO
+    (dava 2,33 itens/h; o certo daquele dia é 3,23 itens/h).
+  - Algumas células da planilha tinham número digitado por cima da fórmula (tempo e
+    contagem de registros de algumas ruas/jiraus) — no app tudo é calculado sempre.
+  - "% da lista abastecida": a planilha dava 117% porque somava itens além da lista.
+    O app mostra separado: % da lista atendida e "itens além da lista".
+  - Linhas com "-" contavam como registro. No app não existem.
+  - Término antes do início (ex.: virou a noite) é tratado como dia seguinte.
+  - Atividade com 2+ pessoas ("ANDREI E PAULO"): no ranking por colaborador os itens
+    são divididos igualmente entre elas.
+
+
+--------------------------------------------------------------
+LIMITES DO PLANO GRÁTIS
+--------------------------------------------------------------
+  - 50 mil leituras e 20 mil gravações por dia, 1 GB de espaço: sobra muito para este uso
+    (cada atividade é um registro pequeno, sem fotos).
+  - Funciona sem internet: o que for lançado offline sobe sozinho quando a internet voltar.
+  - Se passar o limite num dia, o app para até o dia seguinte (não cobra nada).
